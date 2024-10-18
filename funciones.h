@@ -1,25 +1,61 @@
+#ifndef FUNCIONES_H
+#define FUNCIONES_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "estructuras.h"
+
+FILE *archivoEquipo;
+FILE *archivoGrupo;
+FILE *archivoEstadisticas;
+
+// Estructura para almacenar las estadísticas de los equipos
+struct estadisticasEquipo {
+    int PJ; // Partidos jugados
+    int PG; // Partidos ganados
+    int PE; // Partidos empatados
+    int PP; // Partidos perdidos
+    int GC; // Goles en contra
+    int GF; // Goles a favor
+    int DFG; // Diferencia de goles
+    int PTS; // Puntos
+};
+
+// Estructura para representar un equipo
+struct equipo {
+    char nombre[50]; // Nombre del equipo
+    struct estadisticasEquipo estadisticas; // Estadísticas del equipo
+};
+
+// Estructura para representar un grupo, que contiene 4 equipos
+struct grupos {
+    struct equipo equipos[4]; // Lista de equipos en el grupo
+};
+
+// Estructura para representar la competencia, que contiene 4 grupos
+struct competencia {
+    char nombre[50]; // Nombre de la competencia
+    struct grupos gruposEquipos[4]; // Grupos de equipos dentro de la competencia
+};
+
 
 void menuPrincipal() {
+    struct competencia torneo;
     int opcion;
     do {
-        printf("\n======================================== MENU PRINCIPAL ========================================");
-        printf("\n|                                                                                             |");
-        printf("\n|                                  1- CREAR FIXTURE                                           |");
-        printf("\n|                                                                                             |");
-        printf("\n|                                  2- VER FIXTURE                                             |");
-        printf("\n|                                                                                             |");
-        printf("\n|                                  3- SALIR                                                   |");
-        printf("\n|                                                                                             |\n");
+        printf("\n======================================== MENU PRINCIPAL ========================================\n");
+        printf("|                                                                                                 |\n");
+        printf("|                                  1- CREAR FIXTURE                                               |\n");
+        printf("|                                                                                                 |\n");
+        printf("|                                  2- MENU FIXTURE                                                |\n");
+        printf("|                                                                                                 |\n");
+        printf("|                                  3- SALIR                                                       |\n");
+        printf("|                                                                                                 |\n");
         printf("================================================================================================\n");
 
         printf("\nIngrese una opcion: ");
         scanf("%d", &opcion);
-        fflush(stdin);
+        limpiarBuffer();
 
         switch (opcion) {
             case 1:
@@ -28,7 +64,7 @@ void menuPrincipal() {
                 break;
             case 2:
                 system("cls");
-                verFixture();
+                menuFixture();
                 break;
             case 3:
                 exit(0);
@@ -40,151 +76,125 @@ void menuPrincipal() {
     } while (opcion != 3);
 }
 
-/*void crearFixture() {
+void crearFixture() {
     struct competencia torneo;
-    int grupoIndex;
-
+    
     printf("Ingresa el nombre de la competencia: ");
     fgets(torneo.nombre, sizeof(torneo.nombre), stdin);
-    strtok(torneo.nombre, "\n"); //consumir el salto de línea
+    strtok(torneo.nombre, "\n"); // Eliminar el salto de línea
 
-    //abrir archivos para guardar datos
-    archivoGrupo = fopen("Grupo.txt", "w");
+    // Leer los nombres de los equipos para cada grupo
+    for (int grupoI = 0; grupoI < 4; grupoI++) {
+        printf("Crear grupo %c:\n", 'A' + grupoI);
+
+        // Leer nombres de equipos
+        for (int i = 0; i < 4; i++) {
+            printf("Ingresa el nombre del equipo %d: ", i + 1);
+            fgets(torneo.gruposEquipos[grupoI].equipos[i].nombre, sizeof(torneo.gruposEquipos[grupoI].equipos[i].nombre), stdin);
+            strtok(torneo.gruposEquipos[grupoI].equipos[i].nombre, "\n"); // Eliminar el salto de línea
+            
+            // Inicializar estadísticas del equipo
+            torneo.gruposEquipos[grupoI].equipos[i].estadisticas.PJ = 0;
+            torneo.gruposEquipos[grupoI].equipos[i].estadisticas.PG = 0;
+            torneo.gruposEquipos[grupoI].equipos[i].estadisticas.PE = 0;
+            torneo.gruposEquipos[grupoI].equipos[i].estadisticas.PP = 0;
+            torneo.gruposEquipos[grupoI].equipos[i].estadisticas.GF = 0;
+            torneo.gruposEquipos[grupoI].equipos[i].estadisticas.GC = 0;
+            torneo.gruposEquipos[grupoI].equipos[i].estadisticas.DFG = 0;
+            torneo.gruposEquipos[grupoI].equipos[i].estadisticas.PTS = 0;
+        }
+    }
+
+    // Guardar los equipos, los grupos y las estadísticas en archivos
+    guardarEquipos(&torneo);
+    guardarGrupos(&torneo);
+    guardarEstadisticas(&torneo);
+
+    printf("Fixture creado y guardado exitosamente.\n");
+}
+
+void guardarEquipos(struct competencia *torneo) {
     archivoEquipo = fopen("Equipos.txt", "w");
-    
-    if (archivoGrupo == NULL || archivoEquipo == NULL) {
-        printf("Error al abrir los archivos.\n");
+    if (archivoEquipo == NULL) {
+        printf("Error al abrir el archivo de equipos.\n");
         return;
     }
 
     for (int grupoI = 0; grupoI < 4; grupoI++) {
-        printf("Crear grupo %d:\n", grupoI + 1);
-
-        //leer nombres de equipos
+        fprintf(archivoEquipo, "=================== GRUPO %c ===================\n", 'A' + grupoI);
         for (int i = 0; i < 4; i++) {
-            printf("Ingresa el nombre del equipo %d: ", i + 1);
-            fgets(torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre, sizeof(torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre), stdin);
-            strtok(torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre, "\n"); // Consumir el salto de línea
-            fprintf(archivoEquipo, "Equipo %d: %s\n",i + 1 ,torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre); // Guardar en el archivo de equipos
+            fprintf(archivoEquipo, "Equipo %d: %s\n", i + 1, torneo->gruposEquipos[grupoI].equipos[i].nombre);
         }
+        fprintf(archivoEquipo, "\n");
+    }
 
-        //inicializar estadísticas del grupo
-        torneo.gruposEquipos[grupoI].PJ = 0;
-        torneo.gruposEquipos[grupoI].PG = 0;
-        torneo.gruposEquipos[grupoI].PE = 0;
-        torneo.gruposEquipos[grupoI].PP = 0;
-        torneo.gruposEquipos[grupoI].GC = 0;
-        torneo.gruposEquipos[grupoI].GF = 0;
-        torneo.gruposEquipos[grupoI].DFG = 0;
-        torneo.gruposEquipos[grupoI].PTS = 0;
+    fclose(archivoEquipo);
+}
 
-        //guardar los grupo en el archivo de grupos
+void guardarGrupos(struct competencia *torneo) {
+    archivoGrupo = fopen("Grupos.txt", "w");
+    if (archivoGrupo == NULL) {
+        printf("Error al abrir el archivo de grupos.\n");
+        return;
+    }
+
+    for (int grupoI = 0; grupoI < 4; grupoI++) {
         fprintf(archivoGrupo, "\n================================= GRUPO %c ===================================\n", 'A' + grupoI);
         fprintf(archivoGrupo, "| Equipo             | PJ   | PG   | PE   | PP   | Pts  | GF   | GC   | DG   |\n");
         fprintf(archivoGrupo, "|--------------------|------|------|------|------|------|------|------|------|\n");
         for (int i = 0; i < 4; i++) {
             fprintf(archivoGrupo, "| %-18s | %4d | %4d | %4d | %4d | %4d | %4d | %4d | %4d |\n",
-                torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre,
-                torneo.gruposEquipos[grupoI].PJ,
-                torneo.gruposEquipos[grupoI].PG,
-                torneo.gruposEquipos[grupoI].PE,
-                torneo.gruposEquipos[grupoI].PP,
-                torneo.gruposEquipos[grupoI].PTS,
-                torneo.gruposEquipos[grupoI].GF,
-                torneo.gruposEquipos[grupoI].GC,
-                torneo.gruposEquipos[grupoI].DFG);
+                torneo->gruposEquipos[grupoI].equipos[i].nombre,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PJ,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PG,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PE,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PP,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PTS,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.GF,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.GC,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.DFG);
         }
     }
 
-    //cerrar los archivos
     fclose(archivoGrupo);
-    fclose(archivoEquipo);
-    printf("Grupos creados y guardados correctamente.\n");
-}*/
+}
 
-// Función para limpiar el buffer después de usar scanf
+void guardarEstadisticas(struct competencia *torneo) {
+    archivoEstadisticas = fopen("Estadisticas.txt", "w");
+    if (archivoEstadisticas == NULL) {
+        printf("Error al abrir el archivo de estadísticas.\n");
+        return;
+    }
+
+    for (int grupoI = 0; grupoI < 4; grupoI++) {
+        fprintf(archivoEstadisticas, "\n================================= GRUPO %c ===================================\n", 'A' + grupoI);
+        fprintf(archivoEstadisticas, "| Equipo             | PJ   | PG   | PE   | PP   | Pts  | GF   | GC   | DG   |\n");
+        fprintf(archivoEstadisticas, "|--------------------|------|------|------|------|------|------|------|------|\n");
+        for (int i = 0; i < 4; i++) {
+            fprintf(archivoEstadisticas, "| %-18s | %4d | %4d | %4d | %4d | %4d | %4d | %4d | %4d |\n",
+                torneo->gruposEquipos[grupoI].equipos[i].nombre,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PJ,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PG,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PE,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PP,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PTS,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.GF,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.GC,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.DFG);
+        }
+    }
+
+    fclose(archivoEstadisticas);
+}
+
 void limpiarBuffer() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
-void crearFixture() {
+
+void menuFixture() {
     struct competencia torneo;
-    int grupoIndex;
-
-    printf("Ingresa el nombre de la competencia: ");
-    fgets(torneo.nombre, sizeof(torneo.nombre), stdin);
-    strtok(torneo.nombre, "\n"); // Consumir el salto de línea
-
-    // Abrir archivos para guardar datos
-    archivoGrupo = fopen("Grupo.txt", "w");
-    archivoEquipo = fopen("Equipos.txt", "w");
-    
-    if (archivoGrupo == NULL || archivoEquipo == NULL) {
-        printf("Error al abrir los archivos.\n");
-        return;
-    }
-
-    for (int grupoI = 0; grupoI < 4; grupoI++) {
-        printf("Crear grupo %d:\n", grupoI + 1);
-
-        // Leer nombres de equipos y estadísticas
-        for (int i = 0; i < 4; i++) {
-            printf("Ingresa el nombre del equipo %d: ", i + 1);
-            fgets(torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre, sizeof(torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre), stdin);
-            strtok(torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre, "\n"); // Consumir el salto de línea
-
-            // Pedir estadísticas del equipo
-            printf("Estadísticas para %s:\n", torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre);
-            printf("Partidos Jugados: ");
-            scanf("%d", &torneo.gruposEquipos[grupoI].PJ);
-            printf("Partidos Ganados: ");
-            scanf("%d", &torneo.gruposEquipos[grupoI].PG);
-            printf("Partidos Empatados: ");
-            scanf("%d", &torneo.gruposEquipos[grupoI].PE);
-            printf("Partidos Perdidos: ");
-            scanf("%d", &torneo.gruposEquipos[grupoI].PP);
-            printf("Goles a Favor: ");
-            scanf("%d", &torneo.gruposEquipos[grupoI].GF);
-            printf("Goles en Contra: ");
-            scanf("%d", &torneo.gruposEquipos[grupoI].GC);
-
-            limpiarBuffer();
-
-            // Calcular diferencia de goles y puntos
-            torneo.gruposEquipos[grupoI].DFG = torneo.gruposEquipos[grupoI].GF - torneo.gruposEquipos[grupoI].GC;
-            torneo.gruposEquipos[grupoI].PTS = (torneo.gruposEquipos[grupoI].PG * 3) + (torneo.gruposEquipos[grupoI].PE);
-
-            // Guardar en el archivo de equipos
-            fprintf(archivoEquipo, "Equipo %d: %s\n", i + 1, torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre);
-        }
-
-        // Guardar el grupo y las estadísticas en el archivo de grupos
-        fprintf(archivoGrupo, "\n================================= GRUPO %c ===================================\n", 'A' + grupoI);
-        fprintf(archivoGrupo, "| Equipo             | PJ   | PG   | PE   | PP   | Pts  | GF   | GC   | DG   |\n");
-        fprintf(archivoGrupo, "|--------------------|------|------|------|------|------|------|------|------|\n");
-        for (int i = 0; i < 4; i++) {
-            fprintf(archivoGrupo, "| %-18s | %4d | %4d | %4d | %4d | %4d | %4d | %4d | %4d |\n",
-                torneo.gruposEquipos[grupoI].nombreEquipos[i].nombre,
-                torneo.gruposEquipos[grupoI].PJ,
-                torneo.gruposEquipos[grupoI].PG,
-                torneo.gruposEquipos[grupoI].PE,
-                torneo.gruposEquipos[grupoI].PP,
-                torneo.gruposEquipos[grupoI].PTS,
-                torneo.gruposEquipos[grupoI].GF,
-                torneo.gruposEquipos[grupoI].GC,
-                torneo.gruposEquipos[grupoI].DFG);
-        }
-    }
-
-    // Cerrar los archivos
-    fclose(archivoGrupo);
-    fclose(archivoEquipo);
-    printf("Grupos creados, estadísticas cargadas y guardadas correctamente.\n");
-}
-
-
-void verFixture() {
     int opcion;
     do {
         printf("\n======================================== MENU FIXTURE ==========================================\n");
@@ -216,7 +226,7 @@ void verFixture() {
                 break;
             case 3:
                 system("cls");
-                //cargarResultadosPorEquipo();
+                menuParaCargarResultados();
                 break;
             case 4:
                 system("cls");
@@ -232,7 +242,9 @@ void verFixture() {
     } while (opcion != 5);
 }
 
+
 void verFixtureCompleto() {
+    struct competencia torneo;
     archivoEquipo = fopen("Equipos.txt", "r");
     
     if (archivoEquipo == NULL) {
@@ -244,16 +256,16 @@ void verFixtureCompleto() {
     printf("\n========================== FIXTURE COMPLETO ==========================\n\n");
     
     while (fgets(linea, sizeof(linea), archivoEquipo) != NULL) {
-        printf("%s", linea);  //muestra cada linea del archivo
+        printf("%s", linea);  // Muestra cada línea del archivo
     }
     
     fclose(archivoEquipo);
     printf("\n======================================================================\n");
 }
 
-
 void mostrarUnGrupo() {
-   archivoGrupo = fopen("Grupo.txt", "r");
+    struct competencia torneo;
+    archivoGrupo = fopen("Grupos.txt", "r");
     if (archivoGrupo == NULL) {
         perror("Error al abrir el archivo");
         return;
@@ -264,21 +276,19 @@ void mostrarUnGrupo() {
     scanf(" %c", &nombreGrupo);
 
     char linea[256];
-    int mostrar = 0; //indica si se deben mostrar las lineas del grupo
-    int grupoEncontrado = 0; //indica si se ha encontrado el grupo
+    int mostrar = 0;
+    int grupoEncontrado = 0;
 
     while (fgets(linea, sizeof(linea), archivoGrupo)) {
-        //verificamos si la linea contiene el nombre del grupo
         if ((strstr(linea, "GRUPO A") != NULL && (nombreGrupo == 'A' || nombreGrupo == 'a')) ||
             (strstr(linea, "GRUPO B") != NULL && (nombreGrupo == 'B' || nombreGrupo == 'b')) ||
             (strstr(linea, "GRUPO C") != NULL && (nombreGrupo == 'C' || nombreGrupo == 'c')) ||
             (strstr(linea, "GRUPO D") != NULL && (nombreGrupo == 'D' || nombreGrupo == 'd'))) {
-            mostrar = 1; //comenzar a mostrar lineas
-            grupoEncontrado = 1; //se encontro el grupo
+            mostrar = 1;
+            grupoEncontrado = 1;
         } 
-        //cuando encontramos otro grupo, dejamos de mostrar
         else if (strstr(linea, "GRUPO") != NULL && grupoEncontrado) {
-            break; //salir del bucle si ya mostramo el grupo
+            break;
         }
 
         if (mostrar) {
@@ -293,94 +303,112 @@ void mostrarUnGrupo() {
     fclose(archivoGrupo);
 }
 
+void menuParaCargarResultados() {
+    char grupo;
+    printf("Seleccione el grupo (A, B, C, D): ");
+    scanf(" %c", &grupo);
+    grupo = toupper(grupo); 
 
+    if (grupo < 'A' || grupo > 'D') {
+        printf("Grupo no válido. Intente de nuevo.\n");
+        return;
+    }
+    archivoGrupo = fopen("Grupos.txt", "r");
+    if (archivoGrupo == NULL) {
+        printf("Error al abrir el archivo de grupos.\n");
+        return;
+    }
+    cargarResultadosPartido(grupo);
 
+    fclose(archivoGrupo);
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//struct competencia torneo;
-
-// Función para cargar los resultados de un partido
-/*void cargarResultados() {
-    struct competencia torneo;
-    struct grupos grupoActual;
+void cargarResultadosPartido(char grupo) {
     int equipo1, equipo2, goles1, goles2;
-
-    // Mostrar los equipos del grupo
-    printf("Seleccione el equipo 1:\n");
-    for (int i = 0; i < 4; i++) {
-        printf("%d. %s\n", i + 1, grupoActual.nombreEquipos[i].nombre);
-    }
+    printf("Seleccione el equipo 1 (1-4): ");
     scanf("%d", &equipo1);
-
-    printf("Seleccione el equipo 2:\n");
-    for (int i = 0; i < 4; i++) {
-        printf("%d. %s\n", i + 1, grupoActual.nombreEquipos[i].nombre);
-    }
+    printf("Seleccione el equipo 2 (1-4): ");
     scanf("%d", &equipo2);
 
-    // Pedir los goles de ambos equipos
-    printf("Ingrese los goles de %s: ", grupoActual.nombreEquipos[equipo1 - 1].nombre);
+    if (equipo1 < 1 || equipo1 > 4 || equipo2 < 1 || equipo2 > 4 || equipo1 == equipo2) {
+        printf("Selección de equipos no válida. Intente de nuevo.\n");
+        return;
+    }
+    printf("Ingrese los goles del equipo %d: ", equipo1);
     scanf("%d", &goles1);
-    printf("Ingrese los goles de %s: ", grupoActual.nombreEquipos[equipo2 - 1].nombre);
+    printf("Ingrese los goles del equipo %d: ", equipo2);
     scanf("%d", &goles2);
 
-    // Actualizar estadísticas
-    // Partidos jugados
-    grupoActual.PJ += 1; // Para ambos equipos, ya que ambos juegan un partido
+    actualizarEstadisticas(grupo, equipo1, equipo2, goles1, goles2);
+}
 
-    // Goles a favor y en contra
-    grupoActual.GF += goles1;
-    grupoActual.GC += goles2;
-    grupoActual.GF += goles2;
-    grupoActual.GC += goles1;
+void actualizarEstadisticas(char grupo, int equipo1, int equipo2, int goles1, int goles2) {
+    struct competencia torneo;
+    cargarGrupos(&torneo);
 
-    // Diferencia de goles
-    grupoActual.DFG += (goles1 - goles2);
-    grupoActual.DFG += (goles2 - goles1);
+    int grupoIndex = grupo - 'A';
+    equipo1--;
+    equipo2--;
 
-    // Actualización de puntos y resultados
+    torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.PJ++;
+    torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.GF += goles1;
+    torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.GC += goles2;
+    torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.DFG = 
+        torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.GF - torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.GC;
+    
+    torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.PJ++;
+    torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.GF += goles2;
+    torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.GC += goles1;
+    torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.DFG = 
+        torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.GF - torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.GC;
+
     if (goles1 > goles2) {
-        // Equipo 1 gana
-        grupoActual.PG += 1;
-        grupoActual.PP += 1;
-        grupoActual.PTS += 3;
-    } else if (goles2 > goles1) {
-        // Equipo 2 gana
-        grupoActual.PP += 1;
-        grupoActual.PG += 1;
-        grupoActual.PTS += 3;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.PG++;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.PTS += 3;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.PP++;
+    } else if (goles1 < goles2) {
+        torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.PG++;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.PTS += 3;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.PP++;
     } else {
-        // Empate
-        grupoActual.PE += 1;
-        grupoActual.PTS += 1;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.PE++;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.PE++;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo1].estadisticas.PTS += 1;
+        torneo.gruposEquipos[grupoIndex].equipos[equipo2].estadisticas.PTS += 1;
     }
 
-    // Guardar los datos actualizados en el archivo
-    archivoGrupo = fopen("grupos.dat", "r+b");
+    guardarGrupos(&torneo);
+    guardarEstadisticas(&torneo);
+
+    printf("Estadísticas actualizadas correctamente.\n");
+}
+
+void cargarGrupos(struct competencia *torneo) {
+    archivoGrupo = fopen("Grupos.txt", "a");
     if (archivoGrupo == NULL) {
         printf("Error al abrir el archivo de grupos.\n");
         return;
     }
 
-    // Buscar el grupo y actualizarlo
-    fseek(archivoGrupo, sizeof(struct grupos) * (equipo1 - 1), SEEK_SET);
-    fwrite(grupoActual, sizeof(struct grupos), 1, archivoGrupo);
+    for (int grupoI = 0; grupoI < 4; grupoI++) {
+        fprintf(archivoGrupo, "\n================================= GRUPO %c ===================================\n", 'A' + grupoI);
+        fprintf(archivoGrupo, "| Equipo             | PJ   | PG   | PE   | PP   | Pts  | GF   | GC   | DG   |\n");
+        fprintf(archivoGrupo, "|--------------------|------|------|------|------|------|------|------|------|\n");
+        for (int i = 0; i < 4; i++) {
+            fprintf(archivoGrupo, "| %-18s | %4d | %4d | %4d | %4d | %4d | %4d | %4d | %4d |\n",
+                torneo->gruposEquipos[grupoI].equipos[i].nombre,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PJ,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PG,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PE,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PP,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.PTS,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.GF,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.GC,
+                torneo->gruposEquipos[grupoI].equipos[i].estadisticas.DFG);
+        }
+    }
 
     fclose(archivoGrupo);
-}*/
+}
 
-
-
+#endif
